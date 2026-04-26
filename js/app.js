@@ -190,8 +190,10 @@ function loadModel(url, filename = '未知模型') {
 
         loaderEl.classList.add('hidden');
 
-        // Hide hint after model loaded
-        setTimeout(() => hintEl.classList.add('hidden'), 4000);
+        // Hide hint manually via close button only
+        document.getElementById('hint-close').addEventListener('click', () => {
+            hintEl.classList.add('hidden');
+        });
     }, (progress) => {
         const pct = Math.round((progress.loaded / progress.total) * 100);
         loaderEl.querySelector('.loader-text').textContent = `加载中... ${pct}%`;
@@ -430,7 +432,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
     const box = new THREE.Box3().setFromObject(state.model);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    const dist = maxDim * 2.5;
+    const dist = maxDim * 1.8;
 
     // Animate camera reset
     const startPos = camera.position.clone();
