@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolidWorks 装配体实时渲染展示</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Import map for Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loader" class="loader">
+        <div class="loader-spinner"></div>
+        <p class="loader-text">正在加载渲染引擎...</p>
+    </div>
+
+    <!-- Main Canvas -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-brand">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+            </svg>
+            <div>
+                <h1 class="header-title">SolidWorks 实时渲染</h1>
+                <p class="header-subtitle" id="model-name">未加载模型</p>
+            </div>
+        </div>
+        <div class="header-stats" id="header-stats" style="display:none;">
+            <div class="stat">
+                <span class="stat-value" id="stat-parts">0</span>
+                <span class="stat-label">零件</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-vertices">0</span>
+                <span class="stat-label">顶点</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-faces">0</span>
+                <span class="stat-label">面片</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toolbar (Right) -->
+    <div class="toolbar">
+        <button class="tool-btn" id="btn-reset" title="重置视角">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-autorotate" title="自动旋转">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6"/>
+                <path d="M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-wireframe" title="线框模式">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l-9.5 5.5v11L12 24l9.5-5.5v-11L12 2z"/>
+                <path d="M12 2v11l9.5 5.5M12 13l-9.5 5.5"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-explode" title="爆炸视图">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 10l4-4M14 6l4 4M4 14l4 4M14 18l4-4"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-screenshot" title="截图保存">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+            </svg>
+        </button>
+        <button class="tool-btn" id="btn-fullscreen" title="全屏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Model List (Left Bottom) -->
+    <div class="panel model-panel" id="model-panel">
+        <div class="panel-header">
+            <span>模型结构</span>
+            <button class="panel-toggle" id="toggle-model-list">−</button>
+        </div>
+        <div class="panel-body" id="model-tree">
+            <p class="panel-empty">暂无模型数据</p>
+        </div>
+    </div>
+
+    <!-- Drag Drop Overlay -->
+    <div class="drag-overlay" id="drag-overlay">
+        <div class="drag-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p>拖放 GLB / GLTF 文件到此处</p>
+        </div>
+    </div>
+
+    <!-- No Model Hint -->
+    <div class="no-model" id="no-model">
+        <div class="no-model-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+        <h2>准备展示你的 SolidWorks 装配体</h2>
+        <p>将 <code>.glb</code> 或 <code>.gltf</code> 文件拖放到此处</p>
+        <p class="no-model-sub">或把模型重命名为 <code>assembly.glb</code> 放入 models 文件夹</p>
+    </div>
+
+    <!-- Help / Hint -->
+    <div class="hint" id="hint">
+        <p>🖱️ <strong>左键拖拽</strong>旋转 &nbsp;|&nbsp; 🖱️ <strong>右键拖拽</strong>平移 &nbsp;|&nbsp; 🖱️ <strong>滚轮</strong>缩放</p>
+        <p style="margin-top:4px; opacity:0.7;">📁 也可以直接拖放 .glb / .gltf 文件到页面中加载</p>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
