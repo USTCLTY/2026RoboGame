@@ -1,10 +1,11 @@
-# Models - ignore all model files (upload manually via GitHub web UI)
+# Models - allow assembly model, ignore others
 models/*.glb
 models/*.gltf
 models/*.bin
 models/**/*.png
 models/**/*.jpg
 models/**/*.jpeg
+!models/assembly.glb
 
 # OS
 .DS_Store
