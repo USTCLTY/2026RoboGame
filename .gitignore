@@ -1,10 +1,11 @@
-# Models
+# Models - allow specific assembly files, ignore temp/backup
 models/*.glb
 models/*.gltf
 models/*.bin
 models/**/*.png
 models/**/*.jpg
 models/**/*.jpeg
+!models/RG.glb
 
 # OS
 .DS_Store
