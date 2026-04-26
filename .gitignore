@@ -5,7 +5,7 @@ models/*.bin
 models/**/*.png
 models/**/*.jpg
 models/**/*.jpeg
-!models/RG.glb
+!models/assembly.glb
 
 # OS
 .DS_Store

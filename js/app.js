@@ -476,10 +476,10 @@ function animate() {
 animate();
 
 // Try to load default model
-fetch('models/RG.glb')
+fetch('models/assembly.glb')
     .then(res => {
         if (res.ok) {
-            loadModel('models/RG.glb', 'RG.glb');
+            loadModel('models/assembly.glb', 'assembly.glb');
         } else {
             loaderEl.classList.add('hidden');
         }
