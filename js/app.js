@@ -279,46 +279,55 @@ function buildModelTree(model) {
 }
 
 // ===== Explode View =====
+function calculateExplodeTargets(model) {
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(box.getSize(new THREE.Vector3()).x, box.getSize(new THREE.Vector3()).y, box.getSize(new THREE.Vector3()).z);
+    const explodeDist = maxDim * 0.25; // Fixed explode distance
+
+    const targets = new Map();
+    model.traverse((child) => {
+        if (child.isMesh) {
+            const worldPos = new THREE.Vector3();
+            child.getWorldPosition(worldPos);
+            const dir = new THREE.Vector3().subVectors(worldPos, center).normalize();
+            const targetWorldPos = worldPos.clone().add(dir.multiplyScalar(explodeDist));
+            targets.set(child.uuid, targetWorldPos);
+        }
+    });
+    return targets;
+}
+
 function toggleExplode() {
     if (!state.model) return;
     state.exploded = !state.exploded;
     document.getElementById('btn-explode').classList.toggle('active', state.exploded);
 
-    const factor = state.exploded ? 1.5 : 0;
     const duration = 600;
     const startTime = performance.now();
 
-    // Calculate center of model
-    const box = new THREE.Box3().setFromObject(state.model);
-    const center = box.getCenter(new THREE.Vector3());
+    // Pre-calculate target world positions
+    const explodeTargets = calculateExplodeTargets(state.model);
 
     function animateExplode(time) {
         const elapsed = time - startTime;
         const t = Math.min(elapsed / duration, 1);
         const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
-        const currentFactor = state.exploded ? ease * factor : (1 - ease) * factor;
 
         state.model.traverse((child) => {
-            if (child.isMesh || child.isGroup) {
+            if (child.isMesh) {
                 const orig = state.originalPositions.get(child.uuid);
-                if (!orig || !child.parent) return;
+                const targetWorld = explodeTargets.get(child.uuid);
+                if (!orig || !targetWorld || !child.parent) return;
 
-                // Get world position
-                const worldPos = new THREE.Vector3();
-                child.getWorldPosition(worldPos);
+                // Convert target world position to parent's local space
+                const targetLocal = targetWorld.clone();
+                child.parent.worldToLocal(targetLocal);
 
-                // Direction from center
-                const dir = new THREE.Vector3().subVectors(worldPos, center).normalize();
-                const dist = worldPos.distanceTo(center);
-
-                // Apply explode offset in parent's local space
-                const offset = dir.multiplyScalar(dist * currentFactor * 0.5);
-                
-                // Simple approach: offset local position
                 if (state.exploded) {
-                    child.position.copy(orig.position).add(offset.applyQuaternion(child.parent.quaternion.clone().invert()));
+                    child.position.lerpVectors(orig.position, targetLocal, ease);
                 } else {
-                    child.position.lerpVectors(child.position, orig.position, ease);
+                    child.position.lerpVectors(targetLocal, orig.position, ease);
                 }
             }
         });
@@ -419,17 +428,15 @@ dragOverlay.addEventListener('drop', (e) => {
 document.getElementById('btn-reset').addEventListener('click', () => {
     if (!state.model) return;
     const box = new THREE.Box3().setFromObject(state.model);
-    const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = state.model.scale.x;
-    const dist = maxDim * scale * 1.5;
+    const dist = maxDim * 2.5;
 
     // Animate camera reset
     const startPos = camera.position.clone();
     const endPos = new THREE.Vector3(dist, dist * 0.6, dist);
     const startTarget = controls.target.clone();
-    const endTarget = new THREE.Vector3(0, (size.y * scale) / 2, 0);
+    const endTarget = new THREE.Vector3(0, size.y / 2, 0);
     const startTime = performance.now();
     const duration = 800;
 
