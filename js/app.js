@@ -195,7 +195,10 @@ function loadModel(url, filename = '未知模型') {
             hintEl.classList.add('hidden');
         });
     }, (progress) => {
-        const pct = Math.round((progress.loaded / progress.total) * 100);
+        let pct = 0;
+        if (progress.total > 0) {
+            pct = Math.min(100, Math.round((progress.loaded / progress.total) * 100));
+        }
         loaderEl.querySelector('.loader-text').textContent = `加载中... ${pct}%`;
     }, (err) => {
         console.error(err);
