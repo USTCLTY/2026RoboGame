@@ -14,6 +14,7 @@ const state = {
     wireframe: false,
     exploded: false,
     originalPositions: new Map(),
+    explodeTargets: null,
     model: null,
     composer: null
 };
@@ -44,7 +45,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.6;
+renderer.toneMappingExposure = 0.5;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -72,13 +73,16 @@ controls.minDistance = 0.1;
 controls.maxDistance = 50;
 controls.target.set(0, 0, 0);
 
+// Middle mouse button drag for pan
+controls.mouseButtons.middle = THREE.MOUSE.PAN;
+
 // ===== Lighting =====
 RectAreaLightUniformsLib.init();
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 
-const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const mainLight = new THREE.DirectionalLight(0xffffff, 0.6);
 mainLight.position.set(5, 10, 7);
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.width = 2048;
@@ -93,11 +97,11 @@ mainLight.shadow.camera.top = d;
 mainLight.shadow.camera.bottom = -d;
 scene.add(mainLight);
 
-const fillLight = new THREE.DirectionalLight(0xccddff, 0.3);
+const fillLight = new THREE.DirectionalLight(0xccddff, 0.4);
 fillLight.position.set(-5, 2, -5);
 scene.add(fillLight);
 
-const rimLight = new THREE.SpotLight(0x4f8cff, 1.0);
+const rimLight = new THREE.SpotLight(0x4f8cff, 0.6);
 rimLight.position.set(0, 5, -8);
 rimLight.lookAt(0, 0, 0);
 scene.add(rimLight);
@@ -140,6 +144,7 @@ function loadModel(url, filename = '未知模型') {
     if (state.model) {
         scene.remove(state.model);
         state.originalPositions.clear();
+        state.explodeTargets = null;
         state.exploded = false;
         document.getElementById('btn-explode').classList.remove('active');
     }
@@ -172,8 +177,9 @@ function loadModel(url, filename = '未知模型') {
 
         scene.add(model);
 
-        // Store original positions for explode view
+        // Store original positions and pre-calculate explode targets
         storeOriginalPositions(model);
+        state.explodeTargets = calculateExplodeTargets(model);
 
         // Update camera
         const dist = maxDim * scale * 1.5;
@@ -311,9 +317,6 @@ function toggleExplode() {
     const duration = 600;
     const startTime = performance.now();
 
-    // Pre-calculate target world positions
-    const explodeTargets = calculateExplodeTargets(state.model);
-
     function animateExplode(time) {
         const elapsed = time - startTime;
         const t = Math.min(elapsed / duration, 1);
@@ -322,7 +325,7 @@ function toggleExplode() {
         state.model.traverse((child) => {
             if (child.isMesh) {
                 const orig = state.originalPositions.get(child.uuid);
-                const targetWorld = explodeTargets.get(child.uuid);
+                const targetWorld = state.explodeTargets.get(child.uuid);
                 if (!orig || !targetWorld || !child.parent) return;
 
                 // Convert target world position to parent's local space
