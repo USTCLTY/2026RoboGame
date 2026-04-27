@@ -9,9 +9,9 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #0a0a0f;
+    background: #f0f0f5;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    color: #e0e0e5;
+    color: #333333;
     user-select: none;
 }
 
@@ -25,7 +25,7 @@ html, body {
 .loader {
     position: fixed;
     inset: 0;
-    background: #0a0a0f;
+    background: #f0f0f5;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -41,7 +41,7 @@ html, body {
 .loader-spinner {
     width: 48px;
     height: 48px;
-    border: 3px solid rgba(255,255,255,0.1);
+    border: 3px solid rgba(0,0,0,0.1);
     border-top-color: #4f8cff;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -49,7 +49,7 @@ html, body {
 .loader-text {
     margin-top: 16px;
     font-size: 14px;
-    color: #888;
+    color: #666;
     letter-spacing: 1px;
 }
 @keyframes spin {
@@ -66,7 +66,7 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    background: linear-gradient(to bottom, rgba(10,10,15,0.85) 0%, rgba(10,10,15,0.4) 70%, transparent 100%);
+    background: linear-gradient(to bottom, rgba(240,240,245,0.85) 0%, rgba(240,240,245,0.4) 70%, transparent 100%);
     pointer-events: none;
     z-index: 10;
 }
@@ -86,21 +86,21 @@ html, body {
 .header-title {
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: #222;
     letter-spacing: 0.5px;
 }
 .header-subtitle {
     font-size: 12px;
-    color: #888;
+    color: #666;
     margin-top: 2px;
 }
 
 .header-stats {
     display: flex;
     gap: 20px;
-    background: rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.05);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,0,0,0.08);
     border-radius: 10px;
     padding: 10px 16px;
 }
@@ -113,12 +113,12 @@ html, body {
 .stat-value {
     font-size: 16px;
     font-weight: 700;
-    color: #fff;
+    color: #222;
     font-variant-numeric: tabular-nums;
 }
 .stat-label {
     font-size: 10px;
-    color: #666;
+    color: #999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -138,10 +138,10 @@ html, body {
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.7);
     backdrop-filter: blur(10px);
-    color: #ccc;
+    color: #666;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -149,9 +149,9 @@ html, body {
     transition: all 0.2s ease;
 }
 .tool-btn:hover {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    border-color: rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.08);
+    color: #222;
+    border-color: rgba(0,0,0,0.15);
     transform: scale(1.05);
 }
 .tool-btn.active {
@@ -170,9 +170,9 @@ html, body {
     left: 16px;
     bottom: 60px;
     width: 260px;
-    background: rgba(15,15,22,0.85);
+    background: rgba(255,255,255,0.85);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,0,0,0.08);
     border-radius: 12px;
     overflow: hidden;
     z-index: 10;
@@ -185,16 +185,16 @@ html, body {
     padding: 10px 14px;
     font-size: 13px;
     font-weight: 600;
-    color: #aaa;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: #666;
+    background: rgba(0,0,0,0.03);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 .panel-toggle {
     width: 22px;
     height: 22px;
     border: none;
-    background: rgba(255,255,255,0.06);
-    color: #888;
+    background: rgba(0,0,0,0.06);
+    color: #666;
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
@@ -205,8 +205,8 @@ html, body {
     transition: background 0.2s;
 }
 .panel-toggle:hover {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
+    background: rgba(0,0,0,0.1);
+    color: #222;
 }
 .panel-body {
     max-height: 280px;
@@ -231,7 +231,7 @@ html, body {
 .tree-item {
     padding: 5px 14px;
     font-size: 12px;
-    color: #bbb;
+    color: #555;
     cursor: default;
     display: flex;
     align-items: center;
@@ -239,8 +239,8 @@ html, body {
     transition: background 0.15s;
 }
 .tree-item:hover {
-    background: rgba(255,255,255,0.05);
-    color: #fff;
+    background: rgba(0,0,0,0.05);
+    color: #222;
 }
 .tree-item.level-1 { padding-left: 14px; }
 .tree-item.level-2 { padding-left: 28px; }
@@ -256,7 +256,7 @@ html, body {
 .drag-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(10,10,15,0.85);
+    background: rgba(240,240,245,0.85);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -280,7 +280,7 @@ html, body {
     margin-top: 16px;
     font-size: 16px;
     font-weight: 500;
-    color: #ccc;
+    color: #666;
 }
 
 /* ===== Hint ===== */
@@ -289,13 +289,13 @@ html, body {
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(15,15,22,0.8);
+    background: rgba(255,255,255,0.8);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,0,0,0.08);
     border-radius: 10px;
     padding: 10px 32px 10px 20px;
     font-size: 12px;
-    color: #888;
+    color: #666;
     text-align: center;
     z-index: 10;
     transition: opacity 0.5s ease;
@@ -312,7 +312,7 @@ html, body {
     height: 18px;
     border: none;
     background: transparent;
-    color: #666;
+    color: #999;
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
@@ -324,8 +324,8 @@ html, body {
     padding: 0;
 }
 .hint-close:hover {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
+    background: rgba(0,0,0,0.1);
+    color: #222;
 }
 
 /* ===== Animations ===== */
@@ -354,22 +354,22 @@ html, body {
 }
 .no-model-icon {
     color: #4f8cff;
-    opacity: 0.3;
+    opacity: 0.5;
     margin-bottom: 20px;
 }
 .no-model h2 {
     font-size: 20px;
     font-weight: 500;
-    color: #fff;
+    color: #222;
     margin-bottom: 12px;
 }
 .no-model p {
     font-size: 14px;
-    color: #888;
+    color: #666;
     margin-bottom: 8px;
 }
 .no-model code {
-    background: rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.06);
     padding: 2px 8px;
     border-radius: 4px;
     font-family: 'SF Mono', monospace;
@@ -378,7 +378,7 @@ html, body {
 }
 .no-model-sub {
     font-size: 12px !important;
-    color: #555 !important;
+    color: #999 !important;
 }
 
 /* ===== Responsive ===== */
