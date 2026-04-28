@@ -518,6 +518,13 @@ document.getElementById('toggle-model-list').addEventListener('click', function(
     this.textContent = isHidden ? '−' : '+';
 });
 
+document.getElementById('toggle-demo-panel').addEventListener('click', function() {
+    const body = document.getElementById('demo-body');
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'block' : 'none';
+    this.textContent = isHidden ? '−' : '+';
+});
+
 // ===== Demo: Lower Plate Toggle =====
 function toggleLowerPlate() {
     if (!state.model) return;
