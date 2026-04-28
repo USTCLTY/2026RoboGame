@@ -19,6 +19,14 @@ const state = {
     composer: null
 };
 
+// ===== Demo State =====
+const demoState = {
+    lowerPlateExtended: false,
+    lowerPlateOrigPositions: null,
+    sidePlatesExtended: false,
+    sidePlatesOrigPositions: null
+};
+
 // ===== DOM Elements =====
 const canvas = document.getElementById('canvas');
 const loaderEl = document.getElementById('loader');
@@ -153,17 +161,23 @@ function loadModel(url, filename = '未知模型') {
         const model = gltf.scene;
         state.model = model;
 
-        // Compute bounding box
+        // Compute bounding box (original scale)
         const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        // Center and scale model
-        model.position.sub(center);
+        // Apply scale first
         const scale = maxDim > 0 ? 3 / maxDim : 1;
         model.scale.setScalar(scale);
-        model.position.y += (size.y * scale) / 2;
+
+        // Recompute center after scaling, then center the model
+        model.updateMatrixWorld(true);
+        const scaledBox = new THREE.Box3().setFromObject(model);
+        const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+        const scaledSize = scaledBox.getSize(new THREE.Vector3());
+
+        model.position.sub(scaledCenter);
+        model.position.y += scaledSize.y / 2;
 
         // Enable shadows
         model.traverse((child) => {
@@ -181,10 +195,23 @@ function loadModel(url, filename = '未知模型') {
         storeOriginalPositions(model);
         state.explodeTargets = calculateExplodeTargets(model);
 
-        // Update camera
+        // Reset demo states on new model load
+        demoState.lowerPlateExtended = false;
+        demoState.lowerPlateOrigPositions = null;
+        demoState.sidePlatesExtended = false;
+        demoState.sidePlatesOrigPositions = null;
+        document.getElementById('btn-lower-plate').classList.remove('active');
+        document.getElementById('btn-side-plates').classList.remove('active');
+
+        // Update camera target to exact world center
+        model.updateMatrixWorld(true);
+        const worldBox = new THREE.Box3().setFromObject(model);
+        const worldCenter = worldBox.getCenter(new THREE.Vector3());
+        controls.target.copy(worldCenter);
+
         const dist = maxDim * scale * 1.5;
-        camera.position.set(dist, dist * 0.6, dist);
-        controls.target.set(0, (size.y * scale) / 2, 0);
+        // Place camera at negative Z to look at the front of the model
+        camera.position.set(dist, dist * 0.6, -dist);
         controls.update();
 
         // Update UI
@@ -383,7 +410,7 @@ function toggleWireframe() {
 function toggleAutoRotate() {
     state.autoRotate = !state.autoRotate;
     controls.autoRotate = state.autoRotate;
-    controls.autoRotateSpeed = 2.0;
+    controls.autoRotateSpeed = -2.0;
     document.getElementById('btn-autorotate').classList.toggle('active', state.autoRotate);
 }
 
@@ -435,16 +462,18 @@ dragOverlay.addEventListener('drop', (e) => {
 // ===== Toolbar Events =====
 document.getElementById('btn-reset').addEventListener('click', () => {
     if (!state.model) return;
+    state.model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(state.model);
     const size = box.getSize(new THREE.Vector3());
+    const worldCenter = box.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const dist = maxDim * 1.8;
 
     // Animate camera reset
     const startPos = camera.position.clone();
-    const endPos = new THREE.Vector3(dist, dist * 0.6, dist);
+    const endPos = new THREE.Vector3(dist, dist * 0.6, -dist);
     const startTarget = controls.target.clone();
-    const endTarget = new THREE.Vector3(0, size.y / 2, 0);
+    const endTarget = worldCenter;
     const startTime = performance.now();
     const duration = 800;
 
@@ -476,6 +505,134 @@ document.getElementById('toggle-model-list').addEventListener('click', function(
     this.textContent = isHidden ? '−' : '+';
 });
 
+// ===== Demo: Lower Plate Toggle =====
+function toggleLowerPlate() {
+    if (!state.model) return;
+
+    const targetNames = ['下挡板-1', 'MGN12-C滑块-3'];
+    const parts = [];
+    state.model.traverse((child) => {
+        if (targetNames.includes(child.name)) {
+            parts.push(child);
+        }
+    });
+
+    if (parts.length === 0) {
+        console.warn('未找到下挡板相关零件');
+        return;
+    }
+
+    demoState.lowerPlateExtended = !demoState.lowerPlateExtended;
+    document.getElementById('btn-lower-plate').classList.toggle('active', demoState.lowerPlateExtended);
+
+    // Store original positions on first use
+    if (!demoState.lowerPlateOrigPositions) {
+        demoState.lowerPlateOrigPositions = new Map();
+        for (const part of parts) {
+            demoState.lowerPlateOrigPositions.set(part.uuid, part.position.clone());
+        }
+    }
+
+    const duration = 600;
+    const startTime = performance.now();
+    // Model uses meters, 100mm = 0.1m
+    // Backward is positive Z
+    const moveDistance = 0.1;
+    const direction = new THREE.Vector3(0, 0, 1);
+
+    function animateMove(time) {
+        const elapsed = time - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+        for (const part of parts) {
+            const orig = demoState.lowerPlateOrigPositions.get(part.uuid);
+            if (!orig) continue;
+            const target = orig.clone().add(direction.clone().multiplyScalar(moveDistance));
+
+            if (demoState.lowerPlateExtended) {
+                part.position.lerpVectors(orig, target, ease);
+            } else {
+                part.position.lerpVectors(target, orig, ease);
+            }
+        }
+
+        if (t < 1) {
+            requestAnimationFrame(animateMove);
+        }
+    }
+
+    requestAnimationFrame(animateMove);
+}
+
+document.getElementById('btn-lower-plate').addEventListener('click', toggleLowerPlate);
+
+// ===== Demo: Side Plates Toggle =====
+function toggleSidePlates() {
+    if (!state.model) return;
+
+    const rightPartsNames = ['右挡板-2', '前挡板-4', '右挡板连接件-1', 'MGN12-C滑块-1'];
+    const leftPartsNames = ['右挡板-4', '前挡板-1', '左挡板连接件-1', 'MGN12-C滑块-2'];
+    const allTargetNames = [...rightPartsNames, ...leftPartsNames];
+
+    const parts = [];
+    state.model.traverse((child) => {
+        if (allTargetNames.includes(child.name)) {
+            parts.push(child);
+        }
+    });
+
+    if (parts.length === 0) {
+        console.warn('未找到左右挡板相关零件');
+        return;
+    }
+
+    demoState.sidePlatesExtended = !demoState.sidePlatesExtended;
+    document.getElementById('btn-side-plates').classList.toggle('active', demoState.sidePlatesExtended);
+
+    // Store original positions on first use
+    if (!demoState.sidePlatesOrigPositions) {
+        demoState.sidePlatesOrigPositions = new Map();
+        for (const part of parts) {
+            demoState.sidePlatesOrigPositions.set(part.uuid, part.position.clone());
+        }
+    }
+
+    const duration = 600;
+    const startTime = performance.now();
+    const moveDistance = 0.05; // 50mm in meters
+
+    function animateMove(time) {
+        const elapsed = time - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+        for (const part of parts) {
+            const orig = demoState.sidePlatesOrigPositions.get(part.uuid);
+            if (!orig) continue;
+
+            // Determine direction: right parts move +X, left parts move -X
+            const isRight = rightPartsNames.includes(part.name);
+            const direction = isRight ? 1 : -1;
+            const target = orig.clone().add(new THREE.Vector3(moveDistance * direction, 0, 0));
+
+            if (demoState.sidePlatesExtended) {
+                part.position.lerpVectors(orig, target, ease);
+            } else {
+                part.position.lerpVectors(target, orig, ease);
+            }
+        }
+
+        if (t < 1) {
+            requestAnimationFrame(animateMove);
+        }
+    }
+
+    requestAnimationFrame(animateMove);
+}
+
+document.getElementById('btn-side-plates').addEventListener('click', toggleSidePlates);
+
 // ===== Resize Handler =====
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -494,11 +651,12 @@ function animate() {
 // ===== Init =====
 animate();
 
-// Try to load default model
-fetch('models/assembly.glb')
+// Try to load default model (add cache-buster to force reload when model changes)
+const modelUrl = 'models/assembly.glb?v=' + Date.now();
+fetch(modelUrl)
     .then(res => {
         if (res.ok) {
-            loadModel('models/assembly.glb', 'assembly.glb');
+            loadModel(modelUrl, 'assembly.glb');
         } else {
             loaderEl.classList.add('hidden');
         }

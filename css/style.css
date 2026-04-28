@@ -381,9 +381,42 @@ html, body {
     color: #999 !important;
 }
 
+/* ===== Demo Panel ===== */
+.demo-panel {
+    left: auto;
+    right: 16px;
+    bottom: 60px;
+    width: 160px;
+}
+.demo-btn {
+    display: block;
+    width: calc(100% - 28px);
+    margin: 8px 14px;
+    padding: 8px 12px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.7);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+.demo-btn:hover {
+    background: rgba(79,140,255,0.1);
+    color: #4f8cff;
+    border-color: rgba(79,140,255,0.3);
+}
+.demo-btn.active {
+    background: rgba(79,140,255,0.2);
+    color: #4f8cff;
+    border-color: rgba(79,140,255,0.4);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 640px) {
     .header-stats { display: none; }
     .panel { width: 200px; }
     .hint { display: none; }
+    .demo-panel { display: none; }
 }
