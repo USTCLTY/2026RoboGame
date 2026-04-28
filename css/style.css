@@ -386,7 +386,7 @@ html, body {
     left: auto;
     right: 16px;
     bottom: 60px;
-    width: 160px;
+    width: 180px;
 }
 .demo-btn {
     display: block;
@@ -413,11 +413,56 @@ html, body {
     border-color: rgba(79,140,255,0.4);
 }
 
+/* Demo Sliders */
+.demo-slider-row {
+    padding: 6px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.demo-slider-row label {
+    font-size: 12px;
+    color: #666;
+}
+.demo-slider-row input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+.demo-slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #4f8cff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.demo-slider-row input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #4f8cff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+.demo-slider-val {
+    font-size: 11px;
+    color: #4f8cff;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 640px) {
     .header-stats { display: none; }
     .panel { width: 200px; }
     .hint { display: none; }
-    .demo-panel { width: 140px; }
+    .demo-panel { width: 160px; }
     .demo-btn { padding: 6px 8px; font-size: 12px; }
+    .demo-slider-row label { font-size: 11px; }
+    .demo-slider-val { font-size: 10px; }
 }

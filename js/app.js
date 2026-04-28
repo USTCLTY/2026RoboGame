@@ -24,7 +24,10 @@ const demoState = {
     lowerPlateExtended: false,
     lowerPlateOrigPositions: null,
     sidePlatesExtended: false,
-    sidePlatesOrigPositions: null
+    sidePlatesOrigPositions: null,
+    armFrontBackValue: 0,
+    armLiftValue: 0,
+    armOrigPositions: null
 };
 
 // ===== DOM Elements =====
@@ -200,8 +203,18 @@ function loadModel(url, filename = '未知模型') {
         demoState.lowerPlateOrigPositions = null;
         demoState.sidePlatesExtended = false;
         demoState.sidePlatesOrigPositions = null;
+        demoState.armFrontBackValue = 0;
+        demoState.armLiftValue = 0;
+        demoState.armOrigPositions = null;
         document.getElementById('btn-lower-plate').classList.remove('active');
         document.getElementById('btn-side-plates').classList.remove('active');
+        document.getElementById('slider-arm-front-back').value = 0;
+        document.getElementById('val-arm-front-back').textContent = '0mm';
+        document.getElementById('slider-arm-lift').value = 0;
+        document.getElementById('val-arm-lift').textContent = '0mm';
+
+        // Pre-store original positions for all demo features
+        initDemoOrigPositions(model);
 
         // Update camera target to exact world center
         model.updateMatrixWorld(true);
@@ -590,7 +603,7 @@ function toggleSidePlates() {
     demoState.sidePlatesExtended = !demoState.sidePlatesExtended;
     document.getElementById('btn-side-plates').classList.toggle('active', demoState.sidePlatesExtended);
 
-    // Store original positions on first use
+    // Use pre-stored original positions
     if (!demoState.sidePlatesOrigPositions) {
         demoState.sidePlatesOrigPositions = new Map();
         for (const part of parts) {
@@ -632,6 +645,133 @@ function toggleSidePlates() {
 }
 
 document.getElementById('btn-side-plates').addEventListener('click', toggleSidePlates);
+
+// ===== Demo: Arm Sliders =====
+const armGroup1Names = [
+    '机械夹爪', '机械夹爪连接件',
+    '铝型材-300',
+    '5孔铝型材连接板-1', '5孔铝型材连接板-2',
+    '铝型材-150',
+    '2060角码-1', '2060角码-2',
+    'Z轴连接垫块-1', 'Z轴连接垫块-2',
+    'H80BZ滑块-2'
+];
+const armGroup2Names = [
+    'H80BZ右折滑台-200', 'H80BZ滑块-1',
+    '3030L-4孔-1', '3030L-4孔-2'
+];
+
+function initDemoOrigPositions(model) {
+    if (!model) return;
+
+    // Lower plate
+    const lowerPlateNames = ['下挡板-1', 'MGN12-C滑块-3'];
+    demoState.lowerPlateOrigPositions = new Map();
+    model.traverse((child) => {
+        if (lowerPlateNames.includes(child.name)) {
+            demoState.lowerPlateOrigPositions.set(child.uuid, child.position.clone());
+        }
+    });
+
+    // Side plates
+    const sideNames = ['右挡板-2', '前挡板-4', '右挡板连接件-1', 'MGN12-C滑块-1', '右挡板-4', '前挡板-1', '左挡板连接件-1', 'MGN12-C滑块-2'];
+    demoState.sidePlatesOrigPositions = new Map();
+    model.traverse((child) => {
+        if (sideNames.includes(child.name)) {
+            demoState.sidePlatesOrigPositions.set(child.uuid, child.position.clone());
+        }
+    });
+
+    // Arm
+    const allArmNames = [...armGroup1Names, ...armGroup2Names];
+    demoState.armOrigPositions = new Map();
+    let matchedCount = 0;
+    model.traverse((child) => {
+        if (allArmNames.some(n => child.name === n || child.name.includes(n))) {
+            demoState.armOrigPositions.set(child.uuid, child.position.clone());
+            matchedCount++;
+            console.log('[ArmDemo] matched:', child.name);
+        }
+    });
+    console.log('[ArmDemo] total matched parts:', matchedCount, 'expected:', allArmNames.length);
+}
+
+function findPartsByNames(model, names) {
+    const parts = [];
+    const matchedUuids = new Set();
+
+    // Exact match first
+    model.traverse((child) => {
+        if (!child.name || matchedUuids.has(child.uuid)) return;
+        for (const name of names) {
+            if (child.name === name) {
+                parts.push(child);
+                matchedUuids.add(child.uuid);
+                break;
+            }
+        }
+    });
+
+    // Fuzzy match: sort by length descending to avoid short names stealing long ones
+    const fuzzyNames = names.filter(n => !parts.some(p => p.name === n)).slice().sort((a, b) => b.length - a.length);
+    model.traverse((child) => {
+        if (!child.name || matchedUuids.has(child.uuid)) return;
+        for (const name of fuzzyNames) {
+            if (child.name.includes(name)) {
+                parts.push(child);
+                matchedUuids.add(child.uuid);
+                break;
+            }
+        }
+    });
+
+    return parts;
+}
+
+function updateArmPosition() {
+    if (!state.model || !demoState.armOrigPositions) return;
+
+    const fbOffset = demoState.armFrontBackValue / 1000; // Z axis, mm -> m
+    const liftOffset = -demoState.armLiftValue / 1000;   // Y axis, down is negative
+
+    const allNames = [...armGroup1Names, ...armGroup2Names];
+    let movedCount = 0;
+    state.model.traverse((child) => {
+        if (!child.name) return;
+        const matched = allNames.some(n => child.name === n || child.name.includes(n));
+        if (!matched) return;
+
+        const orig = demoState.armOrigPositions.get(child.uuid);
+        if (!orig) {
+            console.warn('[ArmDemo] no orig position for:', child.name);
+            return;
+        }
+
+        const target = orig.clone();
+        target.z += fbOffset; // front/back for both groups
+
+        const isGroup1 = armGroup1Names.some(n => child.name === n || child.name.includes(n));
+        if (isGroup1) {
+            target.y += liftOffset; // lift only for group1
+        }
+
+        child.position.copy(target);
+        movedCount++;
+    });
+    if (movedCount > 0) console.log('[ArmDemo] moved parts:', movedCount);
+}
+
+document.getElementById('slider-arm-front-back').addEventListener('input', function() {
+    demoState.armFrontBackValue = parseInt(this.value, 10);
+    document.getElementById('val-arm-front-back').textContent = demoState.armFrontBackValue + 'mm';
+    updateArmPosition();
+});
+
+document.getElementById('slider-arm-lift').addEventListener('input', function() {
+    demoState.armLiftValue = parseInt(this.value, 10);
+    document.getElementById('val-arm-lift').textContent = demoState.armLiftValue + 'mm';
+    updateArmPosition();
+});
 
 // ===== Resize Handler =====
 window.addEventListener('resize', () => {
