@@ -16,7 +16,8 @@ const state = {
     originalPositions: new Map(),
     explodeTargets: null,
     model: null,
-    composer: null
+    composer: null,
+    highlightedMeshes: new Map() // uuid -> { mesh, originalEmissive, originalIntensity }
 };
 
 // ===== Demo State =====
@@ -304,12 +305,14 @@ function buildModelTree(model) {
     function traverse(node, level = 0) {
         const item = document.createElement('div');
         item.className = `tree-item level-${Math.min(level, 3)}`;
-        
+        item.dataset.uuid = node.uuid;
+        item.dataset.type = node.isMesh ? 'mesh' : 'group';
+
         const icon = document.createElement('span');
-        icon.innerHTML = node.isMesh 
+        icon.innerHTML = node.isMesh
             ? '<svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'
             : '<svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
-        
+
         const name = document.createElement('span');
         name.textContent = node.name || (node.isMesh ? '零件' : '组');
         name.style.overflow = 'hidden';
@@ -318,6 +321,19 @@ function buildModelTree(model) {
 
         item.appendChild(icon);
         item.appendChild(name);
+
+        // Click to highlight corresponding part(s)
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!state.model) return;
+            const uuid = item.dataset.uuid;
+            let targetNode = null;
+            state.model.traverse((child) => {
+                if (child.uuid === uuid) targetNode = child;
+            });
+            if (targetNode) handleTreeItemClick(targetNode, item);
+        });
+
         frag.appendChild(item);
 
         if (node.children) {
@@ -327,6 +343,52 @@ function buildModelTree(model) {
 
     traverse(model);
     modelTree.appendChild(frag);
+}
+
+function handleTreeItemClick(node, itemEl) {
+    const isAlreadyHighlighted = itemEl.classList.contains('active');
+
+    // Clear previous highlight first
+    clearHighlight();
+
+    if (isAlreadyHighlighted) return;
+
+    // Mark UI as active
+    itemEl.classList.add('active');
+
+    // Collect all mesh nodes under the clicked node
+    const meshes = [];
+    node.traverse((child) => {
+        if (child.isMesh) meshes.push(child);
+    });
+
+    meshes.forEach((mesh) => {
+        if (!mesh.material) return;
+
+        // Clone material to avoid affecting other meshes that share the same material
+        const baseMat = mesh.userData.originalMat || mesh.material;
+        const highlightMat = baseMat.clone();
+        highlightMat.emissive = new THREE.Color(0x2266ff);
+        highlightMat.emissiveIntensity = 1.5;
+
+        state.highlightedMeshes.set(mesh.uuid, {
+            mesh,
+            beforeMat: mesh.material
+        });
+
+        mesh.material = highlightMat;
+    });
+}
+
+function clearHighlight() {
+    state.highlightedMeshes.forEach(({ mesh, beforeMat }) => {
+        if (mesh.material) {
+            mesh.material = beforeMat;
+        }
+    });
+    state.highlightedMeshes.clear();
+
+    document.querySelectorAll('.tree-item.active').forEach((el) => el.classList.remove('active'));
 }
 
 // ===== Explode View =====
