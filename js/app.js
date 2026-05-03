@@ -654,7 +654,7 @@ function toggleSidePlates() {
     if (!state.model) return;
 
     const rightPartsNames = ['右挡板-2', '前挡板-4', '右挡板连接件-1', 'MGN12-C滑块-1'];
-    const leftPartsNames = ['右挡板-4', '前挡板-1', '左挡板连接件-1', 'MGN12-C滑块-2'];
+    const leftPartsNames = ['左挡板-1', '前挡板-1', '左挡板连接件-1', 'MGN12-C滑块-2'];
     const allTargetNames = [...rightPartsNames, ...leftPartsNames];
 
     const parts = [];
@@ -743,7 +743,7 @@ function initDemoOrigPositions(model) {
     });
 
     // Side plates
-    const sideNames = ['右挡板-2', '前挡板-4', '右挡板连接件-1', 'MGN12-C滑块-1', '右挡板-4', '前挡板-1', '左挡板连接件-1', 'MGN12-C滑块-2'];
+    const sideNames = ['右挡板-2', '前挡板-4', '右挡板连接件-1', 'MGN12-C滑块-1', '左挡板-1', '前挡板-1', '左挡板连接件-1', 'MGN12-C滑块-2'];
     demoState.sidePlatesOrigPositions = new Map();
     model.traverse((child) => {
         if (sideNames.includes(child.name)) {
