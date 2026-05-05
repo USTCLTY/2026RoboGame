@@ -31,6 +31,24 @@ const demoState = {
     armOrigPositions: null
 };
 
+// ===== Drive State =====
+const driveState = {
+    keys: new Set(),
+    wheels: {
+        rf: null, // 右前 - RM-麦轮组装右-1
+        lr: null, // 左后 - RM-麦轮组装右-2
+        lf: null, // 左前 - RM-麦轮组装左-1
+        rr: null  // 右后 - RM-麦轮组装左-2
+    },
+    axes: {
+        rf: 'x',
+        lr: 'x',
+        lf: 'x',
+        rr: 'x'
+    },
+    speed: 0.08
+};
+
 // ===== DOM Elements =====
 const canvas = document.getElementById('canvas');
 const loaderEl = document.getElementById('loader');
@@ -195,6 +213,22 @@ function loadModel(url, filename = '未知模型') {
 
         scene.add(model);
 
+        // Find mecanum wheels for keyboard drive demo
+        driveState.wheels.rf = findNodeByName(model, 'RM-麦轮组装右-1');
+        driveState.wheels.lr = findNodeByName(model, 'RM-麦轮组装右-2');
+        driveState.wheels.lf = findNodeByName(model, 'RM-麦轮组装左-1');
+        driveState.wheels.rr = findNodeByName(model, 'RM-麦轮组装左-2');
+
+        // Detect rotation axis for each wheel (narrowest dimension = axle direction)
+        for (const [key, wheel] of Object.entries(driveState.wheels)) {
+            if (wheel) {
+                driveState.axes[key] = detectWheelAxis(wheel);
+                console.log(`[Drive] Found wheel ${key}: ${wheel.name}, axis: ${driveState.axes[key]}`);
+            } else {
+                console.warn(`[Drive] Wheel not found: ${key}`);
+            }
+        }
+
         // Store original positions and pre-calculate explode targets
         storeOriginalPositions(model);
         state.explodeTargets = calculateExplodeTargets(model);
@@ -252,6 +286,22 @@ function loadModel(url, filename = '未知模型') {
         loaderEl.querySelector('.loader-text').textContent = '模型加载失败';
         setTimeout(() => loaderEl.classList.add('hidden'), 2000);
     });
+}
+
+function findNodeByName(model, name) {
+    let found = null;
+    model.traverse((child) => {
+        if (child.name === name && !found) found = child;
+    });
+    return found;
+}
+
+function detectWheelAxis(wheel) {
+    const box = new THREE.Box3().setFromObject(wheel);
+    const size = box.getSize(new THREE.Vector3());
+    if (size.x <= size.y && size.x <= size.z) return 'x';
+    if (size.y <= size.x && size.y <= size.z) return 'y';
+    return 'z';
 }
 
 function storeOriginalPositions(model) {
@@ -843,6 +893,42 @@ document.getElementById('slider-arm-lift').addEventListener('input', function() 
 });
 
 // ===== Resize Handler =====
+// ===== Keyboard Drive =====
+window.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    if (['w','a','s','d','q','e'].includes(key)) {
+        driveState.keys.add(key);
+    }
+});
+window.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
+    driveState.keys.delete(key);
+});
+
+function updateWheelRotation() {
+    const { wheels, axes, keys, speed } = driveState;
+    if (!wheels.rf && !wheels.lr && !wheels.lf && !wheels.rr) return;
+
+    let rf = 0, lr = 0, lf = 0, rr = 0;
+
+    if (keys.has('w')) { rf += speed; lr += speed; lf += speed; rr += speed; }
+    if (keys.has('s')) { rf -= speed; lr -= speed; lf -= speed; rr -= speed; }
+    if (keys.has('a')) { rf += speed; lr -= speed; lf -= speed; rr += speed; }
+    if (keys.has('d')) { rf -= speed; lr += speed; lf += speed; rr -= speed; }
+    if (keys.has('q')) { rf += speed; lr += speed; lf -= speed; rr -= speed; }
+    if (keys.has('e')) { rf -= speed; lr -= speed; lf += speed; rr += speed; }
+
+    const apply = (wheel, axis, delta) => {
+        if (!wheel || !delta) return;
+        wheel.rotation[axis] += delta;
+    };
+
+    apply(wheels.rf, axes.rf, rf);
+    apply(wheels.lr, axes.lr, lr);
+    apply(wheels.lf, axes.lf, lf);
+    apply(wheels.rr, axes.rr, rr);
+}
+
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -854,6 +940,7 @@ window.addEventListener('resize', () => {
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    updateWheelRotation();
     composer.render();
 }
 
