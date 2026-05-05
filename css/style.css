@@ -396,6 +396,9 @@ html, body {
     bottom: 20px;
     width: 180px;
 }
+.model-panel {
+    bottom: 20px;
+}
 .demo-btn {
     display: block;
     width: calc(100% - 28px);
